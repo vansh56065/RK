@@ -1,0 +1,152 @@
+// RK Residency — Prisma schema
+// Heritage luxury hotel in Vrindavan — booking engine, CMS, reviews, leads.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Room {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  name          String
+  tagline       String
+  description   String
+  longDescription String
+  basePrice     Int      // INR per night
+  maxGuests     Int
+  sizeSqft      Int
+  bedType       String
+  view          String
+  imageUrls     String   // JSON-encoded array
+  amenities     String   // JSON-encoded array
+  totalCount    Int      @default(4) // total inventory
+  badge         String?
+  featured      Boolean  @default(false)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  bookings      Booking[]
+  rateOverrides RateOverride[]
+}
+
+// Festival / seasonal surge pricing (Janmashtami, Holi, Radhashtami, weekends)
+model RateOverride {
+  id        String   @id @default(cuid())
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  name      String   // "Janmashtami Surge", "Weekend", etc.
+  startDate DateTime
+  endDate   DateTime
+  pricePerNight Int
+  createdAt DateTime @default(now())
+}
+
+model Guest {
+  id        String   @id @default(cuid())
+  fullName  String
+  email     String
+  phone     String
+  country   String?
+  city      String?
+  createdAt DateTime @default(now())
+  bookings  Booking[]
+}
+
+model Booking {
+  id            String   @id @default(cuid())
+  referenceCode String   @unique // e.g. RK-VRD-2026-0001
+  roomId        String
+  room          Room     @relation(fields: [roomId], references: [id])
+  guestId       String
+  guest         Guest    @relation(fields: [guestId], references: [id])
+  checkIn       DateTime
+  checkOut      DateTime
+  nights        Int
+  adults        Int      @default(2)
+  children      Int      @default(0)
+  guestName     String
+  guestEmail    String
+  guestPhone    String
+  specialRequests String?
+  pricePerNight Int
+  subtotal      Int
+  taxesGst      Int      // 12% GST
+  serviceFee    Int
+  totalAmount   Int
+  status        String   @default("CONFIRMED") // CONFIRMED, CHECKED_IN, CHECKED_OUT, CANCELLED, NO_SHOW
+  paymentStatus String   @default("PENDING") // PENDING, PAID, REFUNDED
+  paymentMethod String?  // RAZORPAY, STRIPE, PAY_AT_HOTEL
+  paymentRef    String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  guestName   String
+  guestLocation String?
+  rating      Int      // 1-5
+  title       String
+  body        String
+  source      String   @default("DIRECT") // DIRECT, GOOGLE, TRIPADVISOR
+  verified    Boolean  @default(true)
+  approved    Boolean  @default(true)
+  roomId      String?
+  createdAt   DateTime @default(now())
+}
+
+model Offer {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  tagline     String
+  description String
+  perks       String   // JSON array
+  discountPct Int?
+  validFrom   DateTime
+  validUntil  DateTime
+  imageUrl    String?
+  badge       String?  // e.g. "Janmashtami", "Holi"
+  featured    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model NewsletterSubscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  language  String   @default("en")
+  createdAt DateTime @default(now())
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String
+  topic     String   @default("GENERAL") // GENERAL, BOOKING, EVENTS, PRESS
+  createdAt DateTime @default(now())
+}
+
+model BlogPost {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  excerpt     String
+  body        String
+  category    String   // TEMPLE_GUIDE, FESTIVAL, LOCAL_TIP, EXPERIENCE
+  tags        String   // JSON array
+  imageUrl    String?
+  published   Boolean  @default(false)
+  publishedAt DateTime?
+  readingMins Int      @default(4)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
