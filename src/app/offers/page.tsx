@@ -7,5 +7,5 @@ export const metadata = {
 };
 
 export default function OffersRoute() {
-  return <OffersListPage onBookClick={() => {}} />;
+  return <OffersListPage />;
 }
