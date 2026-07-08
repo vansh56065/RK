@@ -83,7 +83,7 @@ export async function GET(req: Request) {
     });
 
     // Revenue trend (last 7 days)
-    const trend = [];
+    const trend: Array<{ date: string; label: string; revenue: number; bookings: number }> = [];
     for (let i = 6; i >= 0; i--) {
       const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
       const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
