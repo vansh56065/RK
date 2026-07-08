@@ -5,14 +5,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Phone, Globe, CalendarDays } from "lucide-react";
 import { Logo } from "./Motifs";
 import { Button } from "@/components/ui/button";
+import { useRouter, type RouteName } from "@/lib/router";
 
-const NAV_ITEMS = [
-  { id: "rooms", label: "Rooms", labelHi: "कक्ष" },
-  { id: "experiences", label: "Experiences", labelHi: "अनुभव" },
-  { id: "dining", label: "Dining", labelHi: "भोजन" },
-  { id: "gallery", label: "Gallery", labelHi: "गैलरी" },
-  { id: "offers", label: "Offers", labelHi: "ऑफर" },
-  { id: "contact", label: "Contact", labelHi: "संपर्क" },
+// Each nav item: clicking scrolls to the section on home; if not on home, navigates to dedicated page.
+const NAV_ITEMS: { id: string; route: RouteName; label: string; labelHi: string }[] = [
+  { id: "rooms", route: "rooms", label: "Rooms", labelHi: "कक्ष" },
+  { id: "experiences", route: "experiences", label: "Experiences", labelHi: "अनुभव" },
+  { id: "dining", route: "dining", label: "Dining", labelHi: "भोजन" },
+  { id: "gallery", route: "gallery", label: "Gallery", labelHi: "गैलरी" },
+  { id: "offers", route: "offers", label: "Offers", labelHi: "ऑफर" },
+  { id: "contact", route: "contact", label: "Contact", labelHi: "संपर्क" },
 ];
 
 export function Navbar({ onBookClick }: { onBookClick: () => void }) {
@@ -20,6 +22,8 @@ export function Navbar({ onBookClick }: { onBookClick: () => void }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [lang, setLang] = useState<"en" | "hi">("en");
   const [activeId, setActiveId] = useState<string>("");
+  const navigate = useRouter((s) => s.navigate);
+  const currentRoute = useRouter((s) => s.route);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -45,10 +49,27 @@ export function Navbar({ onBookClick }: { onBookClick: () => void }) {
     return () => observer.disconnect();
   }, []);
 
-  const handleNav = (id: string) => {
+  const handleNav = (item: { id: string; route: RouteName }) => {
     setMobileOpen(false);
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (currentRoute === "home") {
+      // Scroll to section on home
+      const el = document.getElementById(item.id);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+    }
+    // Otherwise navigate to the dedicated page
+    navigate(item.route);
+  };
+
+  const goHome = () => {
+    setMobileOpen(false);
+    if (currentRoute !== "home") {
+      navigate("home");
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   return (
@@ -70,7 +91,7 @@ export function Navbar({ onBookClick }: { onBookClick: () => void }) {
         >
           {/* Logo */}
           <button
-            onClick={() => handleNav("home")}
+            onClick={goHome}
             className="group flex items-center gap-2.5 focus-ring rounded-md"
             aria-label="RK Residency home"
           >
@@ -109,7 +130,7 @@ export function Navbar({ onBookClick }: { onBookClick: () => void }) {
             {NAV_ITEMS.map((item) => (
               <button
                 key={item.id}
-                onClick={() => handleNav(item.id)}
+                onClick={() => handleNav(item)}
                 className={`relative rounded-md px-3 py-2 text-sm font-medium transition-colors focus-ring ${
                   scrolled
                     ? "text-charcoal-soft hover:text-teal"
@@ -126,6 +147,26 @@ export function Navbar({ onBookClick }: { onBookClick: () => void }) {
                 )}
               </button>
             ))}
+            <button
+              onClick={() => navigate("blog")}
+              className={`rounded-md px-3 py-2 text-sm font-medium transition-colors focus-ring ${
+                scrolled
+                  ? "text-charcoal-soft hover:text-teal"
+                  : "text-ivory/85 hover:text-ivory"
+              }`}
+            >
+              {lang === "hi" ? "जर्नल" : "Journal"}
+            </button>
+            <button
+              onClick={() => navigate("about")}
+              className={`rounded-md px-3 py-2 text-sm font-medium transition-colors focus-ring ${
+                scrolled
+                  ? "text-charcoal-soft hover:text-teal"
+                  : "text-ivory/85 hover:text-ivory"
+              }`}
+            >
+              {lang === "hi" ? "हमारी कहानी" : "About"}
+            </button>
           </nav>
 
           {/* Right actions */}
@@ -223,12 +264,24 @@ export function Navbar({ onBookClick }: { onBookClick: () => void }) {
                 {NAV_ITEMS.map((item) => (
                   <button
                     key={item.id}
-                    onClick={() => handleNav(item.id)}
+                    onClick={() => handleNav(item)}
                     className="rounded-lg px-4 py-3 text-left font-serif text-lg text-charcoal transition-colors hover:bg-teal/5 hover:text-teal focus-ring"
                   >
                     {lang === "hi" ? item.labelHi : item.label}
                   </button>
                 ))}
+                <button
+                  onClick={() => { setMobileOpen(false); navigate("blog"); }}
+                  className="rounded-lg px-4 py-3 text-left font-serif text-lg text-charcoal transition-colors hover:bg-teal/5 hover:text-teal focus-ring"
+                >
+                  {lang === "hi" ? "जर्नल" : "Journal"}
+                </button>
+                <button
+                  onClick={() => { setMobileOpen(false); navigate("about"); }}
+                  className="rounded-lg px-4 py-3 text-left font-serif text-lg text-charcoal transition-colors hover:bg-teal/5 hover:text-teal focus-ring"
+                >
+                  {lang === "hi" ? "हमारी कहानी" : "About"}
+                </button>
               </nav>
               <div className="mt-auto border-t border-charcoal/10 px-5 py-4">
                 <Button

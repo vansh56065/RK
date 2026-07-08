@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Users, Maximize, BedDouble, Eye, ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Reveal, Lotus, SectionDivider } from "./Motifs";
+import { useRouter } from "@/lib/router";
 
 type Room = {
   id: string;
@@ -35,6 +36,7 @@ function TiltCard({
   const ref = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useReducedMotion();
   const [transform, setTransform] = useState("");
+  const navigate = useRouter((s) => s.navigate);
 
   const handleMove = (e: React.MouseEvent) => {
     if (prefersReducedMotion || !ref.current) return;
@@ -86,13 +88,17 @@ function TiltCard({
           )}
 
           {/* Title overlay */}
-          <div className="absolute inset-x-0 bottom-0 p-5 text-ivory">
+          <button
+            onClick={() => navigate("room-detail", room.slug)}
+            className="absolute inset-x-0 bottom-0 p-5 text-left text-ivory focus-ring"
+            aria-label={`View ${room.name} details`}
+          >
             <div className="font-display text-xs uppercase tracking-[0.28em] text-gold-soft">
               {room.view}
             </div>
-            <h3 className="mt-1 font-serif text-2xl font-semibold">{room.name}</h3>
+            <h3 className="mt-1 font-serif text-2xl font-semibold group-hover:underline">{room.name}</h3>
             <p className="mt-0.5 font-display text-sm text-ivory/80">{room.tagline}</p>
-          </div>
+          </button>
         </div>
 
         {/* Body */}
@@ -184,6 +190,7 @@ export function Rooms({ onBookRoom }: { onBookRoom: (room: Room) => void }) {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
+  const navigate = useRouter((s) => s.navigate);
 
   useEffect(() => {
     fetch("/api/rooms")
@@ -265,6 +272,19 @@ export function Rooms({ onBookRoom }: { onBookRoom: (room: Room) => void }) {
             ))}
           </div>
         )}
+
+        {/* View all link */}
+        <Reveal delay={0.12}>
+          <div className="mt-12 text-center">
+            <button
+              onClick={() => navigate("rooms")}
+              className="group inline-flex items-center gap-2 rounded-full border border-teal/40 px-6 py-2.5 font-serif text-sm font-semibold text-teal transition-all hover:bg-teal hover:text-ivory focus-ring"
+            >
+              View all rooms &amp; full details
+              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </button>
+          </div>
+        </Reveal>
 
         {/* Bottom note */}
         <Reveal delay={0.15}>

@@ -236,6 +236,15 @@ export function Footer() {
             <a href="#" className="transition-colors hover:text-gold-soft">Privacy</a>
             <a href="#" className="transition-colors hover:text-gold-soft">Terms</a>
             <a href="#" className="transition-colors hover:text-gold-soft">Cancellation policy</a>
+            <button
+              onClick={() => {
+                window.location.hash = "#/admin";
+              }}
+              className="transition-colors hover:text-gold-soft"
+              aria-label="Staff admin login"
+            >
+              Staff
+            </button>
             <span className="hidden sm:inline">· GSTIN 09AAACK1234R1Z5</span>
           </div>
         </div>

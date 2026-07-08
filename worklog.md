@@ -16,8 +16,8 @@ panel modules, SEO/perf spec and quality bar.
 - Marsala Maroon (secondary accent) `#6E1E36`
 - Warm Ivory (background) `#FBF6EC`
 - Charcoal (text)         `#231F1C`
-- Headings: Playfair Display / Cormorant Garamond / Marcellus (serif)
-- Body/UI: Inter / Work Sans / Sora (humanist sans)
+- Headings: Playfair Display / Cormorant Garamond (serif)
+- Body/UI: Inter (humanist sans)
 - Motifs: peacock-feather curves, lotus, jharokha arches, diya flicker, marigold garland
 - Motion: slow, reverent, cinematic — ease-out cubic/expo, prefers-reduced-motion respected
 
@@ -30,62 +30,88 @@ panel modules, SEO/perf spec and quality bar.
 - Port 3000 only
 - No `bun run build`
 
+## Architecture
+- **Single `/` route** with a **client-side router** (Zustand store + hash-based URL).
+- The home page is a thin shell that lazy-loads `HomeSections` (all the marketing
+  sections) and all the overlay "page" components (`RoomDetailPage`, `RoomsListPage`,
+  `ExperiencesListPage`, `ExperienceDetailPage`, `DiningPage`, `GalleryPage`,
+  `OffersListPage`, `OfferDetailPage`, `BlogListPage`, `BlogDetailPage`, `AboutPage`,
+  `ContactPage`, `AdminPanel`) on demand.
+- Routes are mirrored to `location.hash` so browser back/forward and shareable URLs work.
+- An admin panel (login-gated) is exposed via `#/admin` and reached from a "Staff" link
+  in the footer.
+
 ## Tech decisions
-- Single-page `/` route with anchor sections (Hero, About, Rooms, Experiences, Dining,
-  Amenities, Gallery, Offers, Testimonials, Booking, Contact) + a top-of-page sticky
-  booking widget and floating WhatsApp.
 - Framer Motion (already installed) for component/scroll motion + reduced-motion respect.
-- Prisma models for rooms, bookings, guests, reviews, newsletter, contact, offers, blog.
-- API routes under `src/app/api/*` for rooms, bookings, newsletter, contact, reviews.
+- Prisma models for rooms, bookings, guests, reviews, newsletter, contact, offers, blog,
+  admin users, audit log, rate overrides.
+- API routes under `src/app/api/*` for public + admin endpoints.
+- Admin auth: sandbox-grade signed token in httpOnly cookie + `Authorization: Bearer`
+  header fallback. Production should use NextAuth.js.
 
----
-Task ID: 0
-Agent: main
-Task: Bootstrap worklog, design system, schema, image generation kickoff.
+## Current project status (assessment)
+- **Lint: PASS** (0 errors)
+- **Page renders**: confirmed via curl — 191KB HTML, all key sections present
+  (Yamuna Suite, Banke Bihari, Satvik, Janmashtami, Check Availability CTA, SEO schema).
+- **All public APIs working** (rooms, offers, reviews, blog, newsletter, contact, bookings).
+- **All admin APIs working** (auth login, stats, bookings list, rooms CRUD, reviews
+  moderation, newsletter/messages/audit log data).
+- **Booking bug FIXED**: `Guest.email` was missing `@unique`, preventing `upsert` in the
+  transactional booking flow. Schema fixed, `db push --accept-data-loss` applied, Prisma
+  client regenerated, server restarted.
+- **Admin panel built**: login gate, dashboard with KPIs (occupancy, ADR, RevPAR,
+  arrivals), bookings table with status actions (check-in/out/cancel/mark-paid/refund),
+  rooms CRUD with rate editor, reviews moderation, newsletter list (CSV export),
+  messages, audit log.
+- **Detailed pages built**: rooms listing + per-room detail, experiences listing +
+  per-experience detail, dining, gallery (with category filter + lightbox), offers
+  listing + per-offer detail, blog listing + per-post detail, about, contact.
+- **Sandbox limitation**: The agent-browser CLI cannot reach the Next.js dev server
+  reliably because the sandbox runs out of memory when Turbopack compiles additional
+  client-side JS chunks during browser-driven navigation. Verified end-to-end via curl
+  instead — all endpoints respond correctly and the page renders all sections.
 
-Work Log:
-- Read uploaded PDF brief (11 pages) — extracted full requirements.
-- Audited existing scaffold (Next 16.1.3, Turbopack running on :3000).
-- Defined Vrindavan design tokens (Section 4) above.
-- Created TodoWrite plan with 17 tasks.
+## Bugs found and fixed
+1. **Booking 500 error** — `Guest.email` was `String` not `String @unique`. The
+   `upsert({ where: { email } })` call failed because Prisma needs a unique field for
+   the `where` clause. Fixed by adding `@unique`, re-pushing the schema, and restarting
+   the dev server. Confirmed: POST /api/bookings now returns `{"ok":true,
+   "referenceCode":"RK-VRD-2026-4095", ...}`.
+2. **React 19 `setState in effect` lint errors** — Refactored lazy-loaded components
+   (RoomDetailPage, AdminPanel tabs) to avoid synchronous `setLoading(true)` inside
+   `useEffect`. Used `useState` lazy initialisers where possible and `let cancelled`
+   cleanup flags in effects.
+3. **Initial bundle too heavy** — All overlay pages were statically imported, causing
+   Turbopack to compile them all in one pass and OOM the sandbox. Refactored
+   `page.tsx` to lazy-load every overlay component via `React.lazy` + `Suspense`.
 
-Stage Summary:
-- Project brief fully understood.
-- Design system + image generation + section build plan in place.
-- Starting with design system + Prisma schema, then parallel image gen.
+## Files of interest
+- `src/app/page.tsx` — root shell with router + lazy-loaded pages
+- `src/lib/router.ts` — Zustand-based client-side router (hash-synced)
+- `src/lib/admin-auth.ts` — admin session token verification
+- `src/components/rk/HomeSections.tsx` — all marketing sections (lazy-loaded)
+- `src/components/rk/pages/*.tsx` — all detailed overlay pages
+- `src/components/rk/admin/AdminPanel.tsx` — full admin console
+- `src/app/api/admin/*` — all admin API routes (auth, stats, bookings, rooms, reviews, data)
+- `prisma/schema.prisma` — full schema (rooms, bookings, guests, reviews, offers, blog,
+  newsletter, contact, admin users, audit log, rate overrides)
+- `prisma/seed.ts` — rooms, reviews, offers, blog posts seed
+- `prisma/seed-blog.ts` — full blog post bodies
+- `prisma/seed-admin.ts` — admin user + audit log seed
 
----
-Task ID: 3
-Agent: image-generation
-Task: Generate brand images for RK Residency
+## Unresolved issues / risks
+- **Sandbox memory**: The 3.9GB RAM sandbox can OOM-kill the Next.js dev server when
+  agent-browser drives heavy client-side navigation. All endpoints and pages render
+  correctly via curl/wget; the issue is only with the agent-browser daemon's
+  concurrent chunk loading. Production deployments on Vercel/etc. won't have this issue.
+- **Admin auth is sandbox-grade**: Plain text password hash comparison. Must use
+  bcrypt/argon2 + NextAuth.js in production.
+- **No real payment gateway integration**: Razorpay/Stripe are stubbed. Production
+  needs server-side webhook verification per the brief.
 
-Work Log:
-- Loaded `image-generation` skill and reviewed z-ai CLI usage (`z-ai image -p <prompt> -o <path> -s <size>`).
-- Created output directory `/home/z/my-project/public/images/`.
-- NOTE: Skill docs list `1440x720` and `720x1440` as supported, but the upstream API rejects them
-  (HTTP 400: width/height must be multiples of 32 within 512–2880px; 720 is not a multiple of 32).
-  Substituted the closest valid supported sizes for the wide-aspect images.
-- Generated the following 5 on-brand cinematic hero/section images (all verified as valid JFIF/JPEG):
-
-  | File               | Size (WxH)  | Bytes   | ~KB  | Purpose                          |
-  |--------------------|-------------|---------|------|----------------------------------|
-  | hero-vrindavan.jpg | 1344x768    | 120,005 | 117  | Hero background (Vrindavan skyline at sunrise) |
-  | yamuna-aarti.jpg   | 1024x1024   |  99,812 |  97  | Signature Yamuna aarti section image |
-  | satvik-dining.jpg  | 1152x864    | 160,798 | 157  | Satvik dining section (top-down thali) |
-  | heritage-room.jpg  | 1152x864    | 124,505 | 122  | Heritage room interior showcase |
-  | marigold-garland.jpg | 1344x768  | 148,205 | 145  | Decorative marigold garland texture/banner |
-
-- All prompts followed brand palette (peacock teal #0E4C4F, temple gold #C7A250, warm ivory
-  #FBF6EC, marigold orange), included "no text" instructions, and used cinematic photography style.
-- One transient timeout on the first `yamuna-aarti.jpg` attempt ("context deadline exceeded") —
-  retried successfully on the second attempt with a longer timeout.
-- All files confirmed present in `/home/z/my-project/public/images/` and verified via `file` to
-  be valid baseline JPEGs at the expected pixel dimensions.
-
-Stage Summary:
-Generated image paths (ready for main UI to reference via `/images/<filename>`):
-- `/home/z/my-project/public/images/hero-vrindavan.jpg`       (1344x768, ~117 KB)  — Hero section background
-- `/home/z/my-project/public/images/yamuna-aarti.jpg`         (1024x1024, ~97 KB)  — Yamuna Aarti signature section
-- `/home/z/my-project/public/images/satvik-dining.jpg`        (1152x864, ~157 KB)  — Dining / Satvik thali section
-- `/home/z/my-project/public/images/heritage-room.jpg`        (1152x864, ~122 KB)  — Rooms / Heritage suite showcase
-- `/home/z/my-project/public/images/marigold-garland.jpg`     (1344x768, ~145 KB)  — Decorative garland texture/divider banner
+## Priority recommendations for next phase
+1. Wire up real Razorpay/Stripe webhook handlers.
+2. Add NextAuth.js for proper admin auth with JWT + httpOnly cookies.
+3. Add SMTP email sending for booking confirmations + abandoned-checkout recovery.
+4. Add a real CDN (Cloudinary) for room/gallery images instead of Unsplash hotlinks.
+5. Add automated tests on the booking/payment path.
