@@ -330,17 +330,29 @@ function DashboardTab() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  useEffect(() => {
+  const loadStats = useCallback(() => {
     let cancelled = false;
     adminFetch("/api/admin/stats")
       .then((data) => {
-        if (cancelled || !data) { setError(true); setLoading(false); return; }
+        if (cancelled) return;
+        if (!data) { setError(true); setLoading(false); return; }
         setStats(data);
         setLoading(false);
       })
       .catch(() => { if (!cancelled) { setError(true); setLoading(false); } });
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    const cleanup = loadStats();
+    return cleanup;
+  }, [loadStats]);
+
+  const retry = () => {
+    setLoading(true);
+    setError(false);
+    loadStats();
+  };
 
   if (loading) return <LoadingSpinner />;
   if (error || !stats) {
@@ -349,8 +361,11 @@ function DashboardTab() {
         <ShieldCheck className="mx-auto mb-3 h-8 w-8 text-marsala" />
         <p className="font-serif text-lg font-semibold text-marsala">Unable to load dashboard</p>
         <p className="mt-1 font-display text-sm text-charcoal-soft">
-          Your session may have expired. Please refresh the page or sign in again.
+          The server may be starting up or your session has expired.
         </p>
+        <Button onClick={retry} className="mt-4 rounded-full bg-teal px-5 py-2 text-ivory hover:bg-teal-deep">
+          <Loader2 className="mr-2 h-4 w-4" /> Retry
+        </Button>
       </div>
     );
   }
@@ -424,17 +439,29 @@ function AnalyticsTab() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
     let cancelled = false;
     adminFetch("/api/admin/analytics")
       .then((d) => {
-        if (cancelled || !d) { setError(true); setLoading(false); return; }
+        if (cancelled) return;
+        if (!d) { setError(true); setLoading(false); return; }
         setData(d);
         setLoading(false);
       })
       .catch(() => { if (!cancelled) { setError(true); setLoading(false); } });
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    const cleanup = loadData();
+    return cleanup;
+  }, [loadData]);
+
+  const retry = () => {
+    setLoading(true);
+    setError(false);
+    loadData();
+  };
 
   if (loading) return <LoadingSpinner />;
   if (error || !data) {
@@ -443,8 +470,11 @@ function AnalyticsTab() {
         <BarChart3 className="mx-auto mb-3 h-8 w-8 text-marsala" />
         <p className="font-serif text-lg font-semibold text-marsala">Unable to load analytics</p>
         <p className="mt-1 font-display text-sm text-charcoal-soft">
-          Your session may have expired. Please refresh or sign in again.
+          The server may be starting up. Please retry.
         </p>
+        <Button onClick={retry} className="mt-4 rounded-full bg-teal px-5 py-2 text-ivory hover:bg-teal-deep">
+          <Loader2 className="mr-2 h-4 w-4" /> Retry
+        </Button>
       </div>
     );
   }
