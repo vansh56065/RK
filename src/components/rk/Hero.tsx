@@ -5,6 +5,7 @@ import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion
 import { CalendarDays, ChevronDown, MapPin, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Diya } from "./Motifs";
+import { WeatherWidget } from "./WeatherWidget";
 
 export function Hero({ onBookClick }: { onBookClick: () => void }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -65,17 +66,20 @@ export function Hero({ onBookClick }: { onBookClick: () => void }) {
         style={{ y: contentY, opacity: contentOpacity }}
         className="absolute inset-0 z-40 flex flex-col items-center justify-center px-6 text-center"
       >
-        {/* Tagline pill */}
+        {/* Tagline pill + weather */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          className="mb-6 flex items-center gap-2 rounded-full border border-gold/40 bg-charcoal/30 px-4 py-1.5 backdrop-blur-sm"
+          className="mb-6 flex flex-wrap items-center justify-center gap-3"
         >
-          <MapPin className="h-3.5 w-3.5 text-gold" />
-          <span className="font-display text-xs uppercase tracking-[0.3em] text-ivory/90">
-            Vrindavan · On the banks of the Yamuna
-          </span>
+          <div className="flex items-center gap-2 rounded-full border border-gold/40 bg-charcoal/30 px-4 py-1.5 backdrop-blur-sm">
+            <MapPin className="h-3.5 w-3.5 text-gold" />
+            <span className="font-display text-xs uppercase tracking-[0.3em] text-ivory/90">
+              Vrindavan · On the banks of the Yamuna
+            </span>
+          </div>
+          <WeatherWidget />
         </motion.div>
 
         {/* Main headline */}

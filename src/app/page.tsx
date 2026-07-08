@@ -10,6 +10,9 @@ import { Dining } from "@/components/rk/Dining";
 import { Gallery } from "@/components/rk/Gallery";
 import { Offers } from "@/components/rk/Offers";
 import { Testimonials } from "@/components/rk/Testimonials";
+import { FestivalCalendar } from "@/components/rk/FestivalCalendar";
+import { FAQ } from "@/components/rk/FAQ";
+import { ReviewForm } from "@/components/rk/ReviewForm";
 import { BookingWidget } from "@/components/rk/BookingWidget";
 import { Contact } from "@/components/rk/Contact";
 import { Footer } from "@/components/rk/Footer";
@@ -81,6 +84,9 @@ export default function Home() {
         <Gallery />
         <Offers onBookClick={openBookingCb} />
         <Testimonials />
+        <FestivalCalendar />
+        <ReviewForm />
+        <FAQ />
         <Contact />
       </main>
 

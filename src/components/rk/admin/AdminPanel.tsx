@@ -65,7 +65,7 @@ export function AdminPanel() {
   }
 
   return (
-    <div className="fixed inset-0 z-[70] flex bg-ivory">
+    <div className="flex min-h-screen bg-ivory">
       {/* Sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 z-20 w-64 transform bg-charcoal text-ivory transition-transform lg:static lg:translate-x-0 ${
@@ -227,7 +227,7 @@ function AdminLogin({ onLogin, onBack }: { onLogin: (a: AdminUser) => void; onBa
   };
 
   return (
-    <div className="fixed inset-0 z-[80] grid place-items-center bg-charcoal p-4">
+    <div className="grid min-h-screen place-items-center bg-charcoal p-4">
       <div className="pointer-events-none absolute inset-0 bg-yamuna-ripple opacity-15" />
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}

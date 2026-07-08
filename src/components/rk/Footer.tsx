@@ -26,6 +26,7 @@ const NAV_GROUPS = [
     links: [
       { label: "Gallery", href: "/gallery" },
       { label: "Offers & Packages", href: "/offers" },
+      { label: "Festival Calendar", href: "/festivals" },
       { label: "Guest Reviews", href: "/#testimonials" },
       { label: "Contact & Location", href: "/contact" },
       { label: "Braj Journal", href: "/blog" },
