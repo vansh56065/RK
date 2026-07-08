@@ -3,6 +3,7 @@ import { Playfair_Display, Cormorant_Garamond, Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
+import { VisitorTracker } from "@/components/rk/VisitorTracker";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -86,6 +87,7 @@ export default function RootLayout({
         className={`${playfair.variable} ${cormorant.variable} ${inter.variable} antialiased bg-ivory text-charcoal font-sans`}
       >
         {children}
+        <VisitorTracker />
         <Toaster />
         <SonnerToaster position="bottom-right" richColors closeButton />
       </body>

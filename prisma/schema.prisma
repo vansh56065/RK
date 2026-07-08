@@ -173,3 +173,47 @@ model AuditLog {
   createdAt DateTime @default(now())
 }
 
+// Visitor tracking — one row per page view
+model PageView {
+  id        String   @id @default(cuid())
+  path      String   // e.g. "/", "/rooms", "/rooms/yamuna-suite"
+  referrer  String?
+  userAgent String?
+  ipAddress String?
+  country   String?
+  city      String?
+  sessionId String?  // anonymous session ID (per browser)
+  isBot     Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// Aggregated daily analytics — one row per day
+model DailyAnalytics {
+  id        String   @id @default(cuid())
+  date      String   @unique // YYYY-MM-DD
+  pageViews Int      @default(0)
+  uniqueVisitors Int @default(0)
+  sessions  Int      @default(0)
+  bookings Int       @default(0)
+  revenue   Int      @default(0)
+  newsletterSignups Int @default(0)
+  contactMessages Int @default(0)
+  topPages  String   // JSON: [{path, views}]
+  topReferrers String // JSON: [{source, visits}]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// SEO keyword tracking (what people searched to find us)
+model SEOKeyword {
+  id        String   @id @default(cuid())
+  keyword   String
+  position  Int?     // SERP position
+  clicks    Int      @default(0)
+  impressions Int    @default(0)
+  ctr       Float?   // click-through rate
+  country   String?
+  createdAt DateTime @default(now())
+}
+
+
