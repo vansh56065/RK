@@ -217,4 +217,26 @@ model SEOKeyword {
   createdAt DateTime @default(now())
 }
 
+// Editable site content — key/value pairs for every text on the website
+// e.g. { key: "hero.headline", value: "Where the spirit of Braj finds its rest", section: "hero", type: "text" }
+model SiteContent {
+  id        String   @id @default(cuid())
+  key       String   @unique // e.g. "hero.headline", "about.title", "contact.phone"
+  value     String   // the editable text
+  section   String   // e.g. "hero", "about", "rooms", "dining", "contact", "footer"
+  type      String   @default("text") // text, textarea, richtext, image, link
+  label     String?  // human-readable label for admin UI
+  updatedAt DateTime @updatedAt
+}
+
+// Site-wide settings — GA ID, social links, contact info, etc.
+model SiteSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique // e.g. "ga_measurement_id", "whatsapp_number", "instagram_url"
+  value     String
+  label     String?  // human-readable label
+  category  String   @default("general") // general, analytics, social, contact, seo
+  updatedAt DateTime @updatedAt
+}
+
 

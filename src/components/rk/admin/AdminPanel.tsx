@@ -25,7 +25,8 @@ import { toast } from "sonner";
 type AdminUser = { id: string; email: string; name: string; role: string };
 type Tab =
   | "dashboard" | "analytics" | "bookings" | "rooms" | "offers"
-  | "blog" | "reviews" | "newsletter" | "messages" | "audit";
+  | "blog" | "reviews" | "newsletter" | "messages" | "audit"
+  | "content" | "users" | "settings";
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -35,6 +36,9 @@ const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: st
   { id: "offers", label: "Offers", icon: Tag },
   { id: "blog", label: "Blog", icon: FileText },
   { id: "reviews", label: "Reviews", icon: Star },
+  { id: "content", label: "Site Content", icon: FileText },
+  { id: "settings", label: "Site Settings", icon: ShieldCheck },
+  { id: "users", label: "User Management", icon: Users },
   { id: "newsletter", label: "Newsletter", icon: Mail },
   { id: "messages", label: "Messages", icon: ScrollText },
   { id: "audit", label: "Audit Log", icon: ShieldCheck },
@@ -188,6 +192,9 @@ export function AdminPanel() {
               {tab === "newsletter" && <NewsletterTab />}
               {tab === "messages" && <MessagesTab />}
               {tab === "audit" && <AuditTab />}
+              {tab === "content" && <ContentTab />}
+              {tab === "settings" && <SettingsTab />}
+              {tab === "users" && <UsersTab />}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -1299,6 +1306,341 @@ function AuditTab() {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// =================== SITE CONTENT MANAGEMENT ===================
+
+function ContentTab() {
+  const [items, setItems] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeSection, setActiveSection] = useState("hero");
+  const [editing, setEditing] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState<Record<string, boolean>>({});
+
+  const reload = useCallback(() => {
+    adminFetch("/api/admin/content").then((data) => {
+      if (data) {
+        setItems(data.items || []);
+        const editMap: Record<string, string> = {};
+        (data.items || []).forEach((item: any) => { editMap[item.id] = item.value; });
+        setEditing(editMap);
+      }
+      setLoading(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    adminFetch("/api/admin/content").then((data) => {
+      if (cancelled || !data) { setLoading(false); return; }
+      setItems(data.items || []);
+      const editMap: Record<string, string> = {};
+      (data.items || []).forEach((item: any) => { editMap[item.id] = item.value; });
+      setEditing(editMap);
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const save = async (id: string) => {
+    setSaving((s) => ({ ...s, [id]: true }));
+    const res = await adminFetch("/api/admin/content", { method: "PATCH", body: JSON.stringify({ id, value: editing[id] }) });
+    if (res) {
+      toast.success("Content updated — changes are live on the website");
+      setItems((prev) => prev.map((item) => item.id === id ? { ...item, value: editing[id] } : item));
+    } else {
+      toast.error("Update failed");
+    }
+    setSaving((s) => ({ ...s, [id]: false }));
+  };
+
+  if (loading) return <LoadingSpinner />;
+
+  const sections = Array.from(new Set(items.map((i) => i.section)));
+  const visibleItems = items.filter((i) => i.section === activeSection);
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-teal/20 bg-teal/5 p-4">
+        <p className="font-display text-sm text-charcoal-soft">
+          <strong className="text-teal">Edit website content directly.</strong> Changes are saved
+          to the database and appear live on the website instantly. Edit headlines, descriptions,
+          contact info, footer text — every word on the site.
+        </p>
+      </div>
+
+      {/* Section tabs */}
+      <div className="flex flex-wrap gap-2">
+        {sections.map((s) => (
+          <button
+            key={s}
+            onClick={() => setActiveSection(s)}
+            className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-all ${
+              activeSection === s ? "border-teal bg-teal text-ivory" : "border-charcoal/15 bg-white text-charcoal-soft hover:border-teal/40 hover:text-teal"
+            }`}
+          >
+            {s.charAt(0).toUpperCase() + s.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {/* Content items */}
+      <div className="space-y-3">
+        {visibleItems.map((item) => (
+          <div key={item.id} className="rounded-2xl border border-charcoal/10 bg-white p-4">
+            <div className="mb-2 flex items-center justify-between">
+              <div>
+                <span className="font-serif text-sm font-semibold text-charcoal">{item.label || item.key}</span>
+                <span className="ml-2 font-mono text-[10px] text-charcoal-soft">{item.key}</span>
+              </div>
+              <span className="rounded-full bg-ivory-deep px-2 py-0.5 font-display text-[10px] uppercase tracking-wider text-charcoal-soft">{item.type}</span>
+            </div>
+            {item.type === "textarea" ? (
+              <textarea
+                value={editing[item.id] || ""}
+                onChange={(e) => setEditing((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                rows={3}
+                className="w-full rounded-lg border border-charcoal/15 bg-ivory-deep/30 px-3 py-2 font-display text-sm text-charcoal"
+              />
+            ) : (
+              <Input
+                value={editing[item.id] || ""}
+                onChange={(e) => setEditing((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                className="bg-ivory-deep/30"
+              />
+            )}
+            <div className="mt-2 flex justify-end">
+              <Button
+                onClick={() => save(item.id)}
+                disabled={saving[item.id] || editing[item.id] === item.value}
+                className="rounded-full bg-teal px-4 py-1.5 text-xs text-ivory hover:bg-teal-deep disabled:opacity-40"
+              >
+                {saving[item.id] ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Saving…</> : <><Check className="mr-1 h-3 w-3" /> Save</>}
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// =================== SITE SETTINGS ===================
+
+function SettingsTab() {
+  const [settings, setSettings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    adminFetch("/api/admin/settings").then((data) => {
+      if (cancelled || !data) { setLoading(false); return; }
+      setSettings(data.settings || []);
+      const editMap: Record<string, string> = {};
+      (data.settings || []).forEach((s: any) => { editMap[s.id] = s.value; });
+      setEditing(editMap);
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const save = async (id: string) => {
+    setSaving((s) => ({ ...s, [id]: true }));
+    const res = await adminFetch("/api/admin/settings", { method: "PATCH", body: JSON.stringify({ id, value: editing[id] }) });
+    if (res) {
+      toast.success("Setting updated");
+      setSettings((prev) => prev.map((s) => s.id === id ? { ...s, value: editing[id] } : s));
+    } else {
+      toast.error("Update failed");
+    }
+    setSaving((s) => ({ ...s, [id]: false }));
+  };
+
+  if (loading) return <LoadingSpinner />;
+
+  const categories = Array.from(new Set(settings.map((s) => s.category)));
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-teal/20 bg-teal/5 p-4">
+        <p className="font-display text-sm text-charcoal-soft">
+          <strong className="text-teal">Site-wide settings.</strong> Configure Google Analytics,
+          WhatsApp number, social media links, check-in/out times, and more.
+        </p>
+      </div>
+
+      {categories.map((cat) => (
+        <div key={cat}>
+          <h3 className="mb-3 font-serif text-lg font-semibold text-charcoal">
+            {cat.charAt(0).toUpperCase() + cat.slice(1)}
+          </h3>
+          <div className="space-y-3">
+            {settings.filter((s) => s.category === cat).map((s) => (
+              <div key={s.id} className="rounded-2xl border border-charcoal/10 bg-white p-4">
+                <div className="mb-2">
+                  <span className="font-serif text-sm font-semibold text-charcoal">{s.label || s.key}</span>
+                  <span className="ml-2 font-mono text-[10px] text-charcoal-soft">{s.key}</span>
+                </div>
+                <Input
+                  value={editing[s.id] || ""}
+                  onChange={(e) => setEditing((prev) => ({ ...prev, [s.id]: e.target.value }))}
+                  className="bg-ivory-deep/30"
+                  placeholder={s.key === "ga_measurement_id" ? "G-XXXXXXXXXX" : ""}
+                />
+                <div className="mt-2 flex justify-end">
+                  <Button
+                    onClick={() => save(s.id)}
+                    disabled={saving[s.id] || editing[s.id] === s.value}
+                    className="rounded-full bg-teal px-4 py-1.5 text-xs text-ivory hover:bg-teal-deep disabled:opacity-40"
+                  >
+                    {saving[s.id] ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Saving…</> : <><Check className="mr-1 h-3 w-3" /> Save</>}
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// =================== USER MANAGEMENT ===================
+
+function UsersTab() {
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<any | null>(null);
+  const admin = getAdmin();
+
+  const reload = useCallback(() => {
+    adminFetch("/api/admin/users").then((data) => {
+      if (data) setUsers(data.users || []);
+      setLoading(false);
+    });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    adminFetch("/api/admin/users").then((data) => {
+      if (cancelled) return;
+      if (data) setUsers(data.users || []);
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const save = async (user: any) => {
+    const method = user.id ? "PATCH" : "POST";
+    const res = await adminFetch("/api/admin/users", { method, body: JSON.stringify(user) });
+    if (res) {
+      toast.success(user.id ? "User updated" : "User created");
+      setEditing(null);
+      reload();
+    } else {
+      toast.error("Save failed");
+    }
+  };
+
+  const del = async (id: string) => {
+    if (!confirm("Delete this admin user? This cannot be undone.")) return;
+    const res = await adminFetch(`/api/admin/users?id=${id}`, { method: "DELETE" });
+    if (res) { toast.success("User deleted"); reload(); } else toast.error("Delete failed");
+  };
+
+  if (loading) return <LoadingSpinner />;
+
+  const ROLE_COLORS: Record<string, string> = {
+    SUPER_ADMIN: "bg-marsala/10 text-marsala",
+    MANAGER: "bg-teal/10 text-teal",
+    FRONT_DESK: "bg-gold/15 text-gold-deep",
+  };
+
+  return (
+    <div className="space-y-4">
+      {admin?.role !== "SUPER_ADMIN" ? (
+        <div className="rounded-2xl border border-marsala/30 bg-marsala/5 p-8 text-center">
+          <ShieldCheck className="mx-auto mb-3 h-8 w-8 text-marsala" />
+          <p className="font-serif text-lg font-semibold text-marsala">Access Denied</p>
+          <p className="mt-1 font-display text-sm text-charcoal-soft">
+            Only Super Admins can manage users.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-center justify-between">
+            <p className="font-display text-sm text-charcoal-soft">{users.length} admin users</p>
+            <Button onClick={() => setEditing({ name: "", email: "", password: "", role: "MANAGER" })} className="rounded-full bg-teal px-4 py-2 text-sm text-ivory hover:bg-teal-deep">
+              <Plus className="mr-1 h-4 w-4" /> New user
+            </Button>
+          </div>
+
+          <div className="overflow-hidden rounded-2xl border border-charcoal/10 bg-white">
+            <table className="w-full text-left">
+              <thead className="border-b border-charcoal/10 bg-ivory-deep font-display text-[10px] uppercase tracking-wider text-charcoal-soft">
+                <tr>
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Email</th>
+                  <th className="px-4 py-3">Role</th>
+                  <th className="px-4 py-3">Created</th>
+                  <th className="px-4 py-3">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-charcoal/8 font-display text-xs">
+                {users.map((u) => (
+                  <tr key={u.id} className="hover:bg-ivory-deep/30">
+                    <td className="px-4 py-3 font-semibold text-charcoal">{u.name}</td>
+                    <td className="px-4 py-3 text-charcoal-soft">{u.email}</td>
+                    <td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${ROLE_COLORS[u.role] || "bg-charcoal/10"}`}>{u.role.replace("_", " ")}</span></td>
+                    <td className="px-4 py-3 text-charcoal-soft">{new Date(u.createdAt).toLocaleDateString("en-IN")}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1">
+                        <button onClick={() => setEditing({ ...u, password: "" })} className="grid h-8 w-8 place-items-center rounded-full border border-charcoal/15 text-charcoal-soft hover:bg-teal hover:text-ivory"><Edit className="h-3.5 w-3.5" /></button>
+                        {u.id !== admin?.id && <button onClick={() => del(u.id)} className="grid h-8 w-8 place-items-center rounded-full border border-charcoal/15 text-charcoal-soft hover:bg-marsala hover:text-ivory"><Trash2 className="h-3.5 w-3.5" /></button>}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {editing && (
+            <div className="fixed inset-0 z-[90] grid place-items-center bg-charcoal/70 p-4" onClick={() => setEditing(null)}>
+              <div className="w-full max-w-md rounded-3xl bg-ivory p-6" onClick={(e) => e.stopPropagation()}>
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="font-serif text-lg font-semibold text-charcoal">{editing.id ? "Edit user" : "New user"}</h3>
+                  <button onClick={() => setEditing(null)} className="grid h-8 w-8 place-items-center rounded-full border border-charcoal/15 text-charcoal-soft"><X className="h-4 w-4" /></button>
+                </div>
+                <div className="space-y-3">
+                  <Field label="Name" value={editing.name} onChange={(v) => setEditing((f: any) => ({ ...f, name: v }))} />
+                  <Field label="Email" value={editing.email} onChange={(v) => setEditing((f: any) => ({ ...f, email: v }))} />
+                  <Field label={editing.id ? "New password (leave blank to keep)" : "Password"} value={editing.password || ""} onChange={(v) => setEditing((f: any) => ({ ...f, password: v }))} />
+                  <div>
+                    <Label className="mb-1 block font-display text-[10px] uppercase tracking-wider text-charcoal-soft">Role</Label>
+                    <Select value={editing.role} onValueChange={(v) => setEditing((f: any) => ({ ...f, role: v }))}>
+                      <SelectTrigger className="bg-ivory-deep/30"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                        <SelectItem value="MANAGER">Manager</SelectItem>
+                        <SelectItem value="FRONT_DESK">Front Desk</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="mt-5 flex gap-3">
+                  <Button onClick={() => save(editing)} className="rounded-full bg-teal px-6 py-2 text-ivory hover:bg-teal-deep">Save user</Button>
+                  <Button onClick={() => setEditing(null)} variant="outline" className="rounded-full">Cancel</Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
