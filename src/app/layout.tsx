@@ -58,12 +58,21 @@ export const metadata: Metadata = {
     siteName: "RK Residency",
     locale: "en_IN",
     type: "website",
+    images: [
+      {
+        url: "/images/hero-vrindavan.jpg",
+        width: 1344,
+        height: 768,
+        alt: "RK Residency — golden-hour view of Vrindavan temple skyline",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "RK Residency — Heritage Luxury Stay in Vrindavan",
     description:
       "Spiritual luxury on the banks of the Yamuna. Direct booking with best-price guarantee.",
+    images: ["/images/hero-vrindavan.jpg"],
   },
   robots: {
     index: true,
