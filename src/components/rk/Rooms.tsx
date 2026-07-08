@@ -155,13 +155,22 @@ function TiltCard({
                 </span>
               </div>
             </div>
-            <Button
-              onClick={() => onBook(room)}
-              className="group/btn rounded-full bg-teal px-4 py-2 text-sm font-semibold text-ivory transition-all hover:bg-teal-deep"
-            >
-              Book Now
-              <ArrowRight className="ml-1.5 h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
-            </Button>
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => navigate("room-detail", room.slug)}
+                className="rounded-full border border-charcoal/15 bg-white px-3 py-2 font-display text-xs font-semibold text-charcoal-soft transition-all hover:border-teal hover:bg-teal hover:text-ivory"
+                aria-label={`View ${room.name} details`}
+              >
+                Details
+              </button>
+              <Button
+                onClick={() => onBook(room)}
+                className="group/btn rounded-full bg-teal px-4 py-2 text-sm font-semibold text-ivory transition-all hover:bg-teal-deep"
+              >
+                Book Now
+                <ArrowRight className="ml-1.5 h-4 w-4 transition-transform group-hover/btn:translate-x-1" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>

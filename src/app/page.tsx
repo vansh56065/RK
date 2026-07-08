@@ -19,6 +19,7 @@ import { Contact } from "@/components/rk/Contact";
 import { Footer } from "@/components/rk/Footer";
 import { FloatingWhatsApp, ExitIntentModal } from "@/components/rk/FloatingActions";
 import { ScrollProgress } from "@/components/rk/ScrollProgress";
+import { LiveChat } from "@/components/rk/LiveChat";
 import { useRouter } from "@/lib/router";
 import type { Room as RoomType } from "@/components/rk/Rooms";
 
@@ -157,6 +158,7 @@ export default function Home() {
 
       {/* Floating / overlay UI */}
       <FloatingWhatsApp />
+      <LiveChat />
       <ExitIntentModal onBookClick={openBookingCb} />
 
       {/* Booking widget — accessible from any route via the store */}

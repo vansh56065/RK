@@ -9,6 +9,7 @@ import {
 import { PageShell } from "../PageShell";
 import { Button } from "@/components/ui/button";
 import { Reveal, Lotus, PeacockFeather } from "../Motifs";
+import { AvailabilityCalendar } from "../AvailabilityCalendar";
 import { useRouter } from "@/lib/router";
 
 type Room = {
@@ -199,6 +200,15 @@ export function RoomDetailPage({ slug }: { slug: string }) {
               <li>• Festival surge pricing applies during Janmashtami, Holi &amp; Radhashtami</li>
             </ul>
           </div>
+
+          {/* Availability Calendar */}
+          <div className="mt-10">
+            <AvailabilityCalendar
+              roomId={room.id}
+              totalCount={room.totalCount}
+              onBookClick={() => openBooking(room.slug)}
+            />
+          </div>
         </div>
 
         {/* Right: sticky booking card */}
@@ -306,6 +316,28 @@ export function RoomDetailPage({ slug }: { slug: string }) {
           </div>
         </div>
       )}
+
+      {/* Sticky mobile booking bar */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-charcoal/10 bg-white/95 px-4 py-3 backdrop-blur-md lg:hidden" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="font-serif text-lg font-bold text-teal">
+              ₹{room.basePrice.toLocaleString("en-IN")}
+              <span className="font-sans text-xs font-normal text-charcoal-soft"> / night</span>
+            </div>
+            <div className="font-display text-[10px] text-charcoal-soft">
+              {room.totalCount} rooms · Free cancellation
+            </div>
+          </div>
+          <Button
+            onClick={() => openBooking(room.slug)}
+            className="cta-glow rounded-full bg-gradient-to-r from-gold via-gold-soft to-gold px-6 py-2.5 font-serif text-sm font-semibold text-charcoal"
+          >
+            <CalendarDays className="mr-1.5 h-4 w-4" />
+            Book Now
+          </Button>
+        </div>
+      </div>
     </PageShell>
   );
 }
