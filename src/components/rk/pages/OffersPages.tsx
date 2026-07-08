@@ -14,10 +14,16 @@ type Offer = {
   imageUrl: string | null; badge: string | null; featured: boolean;
 };
 
-export function OffersListPage({ onBookClick }: { onBookClick: () => void }) {
+export function OffersListPage({ onBookClick }: { onBookClick?: () => void }) {
   const navigate = useRouter((s) => s.navigate);
+  const openBooking = useRouter((s) => s.openBooking);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const handleBook = () => {
+    if (onBookClick) onBookClick();
+    else openBooking();
+  };
 
   useEffect(() => {
     fetch("/api/offers")
@@ -122,10 +128,16 @@ export function OffersListPage({ onBookClick }: { onBookClick: () => void }) {
   );
 }
 
-export function OfferDetailPage({ slug, onBookClick }: { slug: string; onBookClick: () => void }) {
+export function OfferDetailPage({ slug, onBookClick }: { slug: string; onBookClick?: () => void }) {
   const navigate = useRouter((s) => s.navigate);
+  const openBooking = useRouter((s) => s.openBooking);
   const [offer, setOffer] = useState<Offer | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const handleBook = () => {
+    if (onBookClick) onBookClick();
+    else openBooking();
+  };
 
   useEffect(() => {
     fetch("/api/offers")
@@ -138,7 +150,7 @@ export function OfferDetailPage({ slug, onBookClick }: { slug: string; onBookCli
 
   if (loading) {
     return (
-      <div className="fixed inset-0 z-[55] grid place-items-center bg-ivory">
+      <div className="grid min-h-screen place-items-center bg-ivory">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-gold/30 border-t-gold" />
       </div>
     );
@@ -242,7 +254,7 @@ export function OfferDetailPage({ slug, onBookClick }: { slug: string; onBookCli
               4 hours.
             </p>
             <Button
-              onClick={onBookClick}
+              onClick={handleBook}
               className="cta-glow mt-5 w-full rounded-full bg-gradient-to-r from-gold via-gold-soft to-gold py-3 font-serif text-base font-semibold text-charcoal hover:from-gold-deep hover:to-gold"
             >
               <Sparkles className="mr-2 h-5 w-5" />

@@ -35,7 +35,7 @@ export function PageShell({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.35 }}
-      className="fixed inset-0 z-[55] overflow-y-auto bg-ivory scrollbar-thin"
+      className="min-h-screen bg-ivory scrollbar-thin"
       role="main"
     >
       {/* Sticky top bar */}

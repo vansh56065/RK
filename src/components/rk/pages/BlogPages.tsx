@@ -165,7 +165,7 @@ export function BlogDetailPage({ slug }: { slug: string }) {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 z-[55] grid place-items-center bg-ivory">
+      <div className="grid min-h-screen place-items-center bg-ivory">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-gold/30 border-t-gold" />
       </div>
     );

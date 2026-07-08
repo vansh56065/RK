@@ -82,6 +82,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
+        suppressHydrationWarning
         className={`${playfair.variable} ${cormorant.variable} ${inter.variable} antialiased bg-ivory text-charcoal font-sans`}
       >
         {children}

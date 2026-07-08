@@ -23,7 +23,6 @@ export function Navbar({ onBookClick }: { onBookClick: () => void }) {
   const [lang, setLang] = useState<"en" | "hi">("en");
   const [activeId, setActiveId] = useState<string>("");
   const navigate = useRouter((s) => s.navigate);
-  const currentRoute = useRouter((s) => s.route);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -51,25 +50,19 @@ export function Navbar({ onBookClick }: { onBookClick: () => void }) {
 
   const handleNav = (item: { id: string; route: RouteName }) => {
     setMobileOpen(false);
-    if (currentRoute === "home") {
-      // Scroll to section on home
-      const el = document.getElementById(item.id);
-      if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
-        return;
-      }
-    }
-    // Otherwise navigate to the dedicated page
+    // Navigate to the dedicated page
     navigate(item.route);
+  };
+
+  // Scroll to a section on the home page (used by hero "Explore" buttons)
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const goHome = () => {
     setMobileOpen(false);
-    if (currentRoute !== "home") {
-      navigate("home");
-    } else {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
+    navigate("home");
   };
 
   return (

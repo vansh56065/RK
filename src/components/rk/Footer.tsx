@@ -15,19 +15,21 @@ const NAV_GROUPS = [
   {
     title: "Stay",
     links: [
-      { label: "Rooms & Suites", id: "rooms" },
-      { label: "Vrindavan Experiences", id: "experiences" },
-      { label: "Satvik Dining", id: "dining" },
-      { label: "Amenities", id: "amenities" },
+      { label: "Rooms & Suites", href: "/rooms" },
+      { label: "Vrindavan Experiences", href: "/experiences" },
+      { label: "Satvik Dining", href: "/dining" },
+      { label: "Amenities", href: "/#amenities" },
     ],
   },
   {
     title: "Discover",
     links: [
-      { label: "Gallery", id: "gallery" },
-      { label: "Offers & Packages", id: "offers" },
-      { label: "Guest Reviews", id: "testimonials" },
-      { label: "Contact & Location", id: "contact" },
+      { label: "Gallery", href: "/gallery" },
+      { label: "Offers & Packages", href: "/offers" },
+      { label: "Guest Reviews", href: "/#testimonials" },
+      { label: "Contact & Location", href: "/contact" },
+      { label: "Braj Journal", href: "/blog" },
+      { label: "Our Story", href: "/about" },
     ],
   },
 ];
@@ -73,10 +75,6 @@ export function Footer() {
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const handleNav = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
@@ -175,13 +173,13 @@ export function Footer() {
               </h4>
               <ul className="space-y-2.5">
                 {g.links.map((l) => (
-                  <li key={l.id}>
-                    <button
-                      onClick={() => handleNav(l.id)}
+                  <li key={l.label}>
+                    <a
+                      href={l.href}
                       className="font-display text-sm text-ivory/75 transition-colors hover:text-gold-soft focus-ring"
                     >
                       {l.label}
-                    </button>
+                    </a>
                   </li>
                 ))}
               </ul>
@@ -236,15 +234,13 @@ export function Footer() {
             <a href="#" className="transition-colors hover:text-gold-soft">Privacy</a>
             <a href="#" className="transition-colors hover:text-gold-soft">Terms</a>
             <a href="#" className="transition-colors hover:text-gold-soft">Cancellation policy</a>
-            <button
-              onClick={() => {
-                window.location.hash = "#/admin";
-              }}
+            <a
+              href="/admin"
               className="transition-colors hover:text-gold-soft"
               aria-label="Staff admin login"
             >
               Staff
-            </button>
+            </a>
             <span className="hidden sm:inline">· GSTIN 09AAACK1234R1Z5</span>
           </div>
         </div>
