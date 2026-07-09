@@ -195,23 +195,36 @@ function AdminLogin({ onLogin, onBack }: { onLogin: (a: AdminUser, token: string
     e.preventDefault();
     setLoading(true);
     setError("");
-    try {
-      const res = await fetch("/api/admin/auth", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Login failed");
-      onLogin(data.admin, data.token);
-      toast.success(`Welcome, ${data.admin.name}`);
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Login failed";
-      setError(msg);
-      toast.error("Login failed", { description: msg });
-    } finally {
-      setLoading(false);
+    
+    // Retry loop — server may be compiling on first attempt
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const res = await fetch("/api/admin/auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Login failed");
+        onLogin(data.admin, data.token);
+        toast.success(`Welcome, ${data.admin.name}`);
+        setLoading(false);
+        return;
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : "Login failed";
+        // If network error (server compiling), retry after delay
+        if (msg.includes("fetch") && attempt < 2) {
+          setError(`Server is starting up... retrying (${attempt + 2}/3)`);
+          await new Promise((r) => setTimeout(r, 2000));
+          continue;
+        }
+        setError(msg);
+        toast.error("Login failed", { description: msg });
+        setLoading(false);
+        return;
+      }
     }
+    setLoading(false);
   };
 
   return (
