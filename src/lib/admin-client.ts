@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * Client-side admin API helper.
+ * Client-side admin API helper with auto-retry.
  * Stores the session token in localStorage and includes it as a Bearer header
- * in all admin API requests. Falls back to the httpOnly cookie if present.
+ * in all admin API requests. Auto-retries on network failure (server compiling).
  */
 
 const TOKEN_KEY = "rk_admin_token";
@@ -37,9 +37,10 @@ export function clearAdminSession() {
 }
 
 /**
- * Authenticated fetch for admin API calls.
- * Automatically adds the Authorization: Bearer header.
- * Returns null if unauthorized (caller should handle by showing login).
+ * Authenticated fetch with auto-retry.
+ * Retries up to 3 times with 2s delay between attempts when the server
+ * is unreachable (OOM during compilation). Returns null only if all
+ * retries fail or the token is invalid.
  */
 export async function adminFetch<T = any>(url: string, options: RequestInit = {}): Promise<T | null> {
   const token = getAdminToken();
@@ -51,23 +52,29 @@ export async function adminFetch<T = any>(url: string, options: RequestInit = {}
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  try {
-    const res = await fetch(url, { ...options, headers });
-    if (res.status === 401) {
-      // Token expired or invalid — clear session
-      clearAdminSession();
-      return null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const res = await fetch(url, { ...options, headers });
+      if (res.status === 401) {
+        clearAdminSession();
+        return null;
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: "Request failed" }));
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+      return res.json();
+    } catch (e) {
+      if (e instanceof Error && (e.message === "Failed to fetch" || e.message.includes("fetch"))) {
+        // Network error — server may be compiling. Wait and retry.
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 2000));
+          continue;
+        }
+        return null;
+      }
+      throw e;
     }
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({ error: "Request failed" }));
-      throw new Error(data.error || `HTTP ${res.status}`);
-    }
-    return res.json();
-  } catch (e) {
-    if (e instanceof Error && e.message === "Failed to fetch") {
-      // Network error — server may be down
-      return null;
-    }
-    throw e;
   }
+  return null;
 }

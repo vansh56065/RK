@@ -25,8 +25,8 @@ import { toast } from "sonner";
 type AdminUser = { id: string; email: string; name: string; role: string };
 type Tab =
   | "dashboard" | "analytics" | "bookings" | "rooms" | "offers"
-  | "blog" | "reviews" | "newsletter" | "messages" | "audit"
-  | "content" | "users" | "settings";
+  | "blog" | "reviews" | "leads" | "content" | "theme"
+  | "settings" | "users" | "audit";
 
 const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -36,11 +36,11 @@ const TABS: { id: Tab; label: string; icon: React.ComponentType<{ className?: st
   { id: "offers", label: "Offers", icon: Tag },
   { id: "blog", label: "Blog", icon: FileText },
   { id: "reviews", label: "Reviews", icon: Star },
-  { id: "content", label: "Site Content", icon: FileText },
+  { id: "content", label: "Page Editor", icon: FileText },
+  { id: "theme", label: "Theme & Colors", icon: Sparkles },
   { id: "settings", label: "Site Settings", icon: ShieldCheck },
   { id: "users", label: "User Management", icon: Users },
-  { id: "newsletter", label: "Newsletter", icon: Mail },
-  { id: "messages", label: "Messages", icon: ScrollText },
+  { id: "leads", label: "Leads & Messages", icon: Mail },
   { id: "audit", label: "Audit Log", icon: ShieldCheck },
 ];
 
@@ -189,12 +189,12 @@ export function AdminPanel() {
               {tab === "offers" && <OffersTab />}
               {tab === "blog" && <BlogTab />}
               {tab === "reviews" && <ReviewsTab />}
-              {tab === "newsletter" && <NewsletterTab />}
-              {tab === "messages" && <MessagesTab />}
-              {tab === "audit" && <AuditTab />}
               {tab === "content" && <ContentTab />}
+              {tab === "theme" && <ThemeTab />}
               {tab === "settings" && <SettingsTab />}
               {tab === "users" && <UsersTab />}
+              {tab === "leads" && <LeadsTab />}
+              {tab === "audit" && <AuditTab />}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -1640,6 +1640,193 @@ function UsersTab() {
             </div>
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+// =================== THEME CUSTOMIZER ===================
+
+function ThemeTab() {
+  const [themes, setThemes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    adminFetch("/api/admin/theme").then((data) => {
+      if (cancelled || !data) { setLoading(false); return; }
+      setThemes(data.themes || []);
+      const editMap: Record<string, string> = {};
+      (data.themes || []).forEach((t: any) => { editMap[t.id] = t.value; });
+      setEditing(editMap);
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const save = async (id: string) => {
+    setSaving((s) => ({ ...s, [id]: true }));
+    const res = await adminFetch("/api/admin/theme", { method: "PATCH", body: JSON.stringify({ id, value: editing[id] }) });
+    if (res) {
+      toast.success("Theme color updated — changes are live!");
+      setThemes((prev) => prev.map((t) => t.id === id ? { ...t, value: editing[id] } : t));
+    } else {
+      toast.error("Update failed");
+    }
+    setSaving((s) => ({ ...s, [id]: false }));
+  };
+
+  if (loading) return <LoadingSpinner />;
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-2xl border border-teal/20 bg-teal/5 p-4">
+        <p className="font-display text-sm text-charcoal-soft">
+          <strong className="text-teal">Customize your website colors.</strong> Changes apply
+          instantly across the entire site. Use the color picker or enter a hex code.
+        </p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        {themes.map((t) => (
+          <div key={t.id} className="rounded-2xl border border-charcoal/10 bg-white p-4">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="font-serif text-sm font-semibold text-charcoal">{t.label || t.key}</span>
+              <span className="font-mono text-[10px] text-charcoal-soft">{t.key}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={editing[t.id] || "#000000"}
+                onChange={(e) => setEditing((prev) => ({ ...prev, [t.id]: e.target.value }))}
+                className="h-12 w-16 cursor-pointer rounded-lg border border-charcoal/15"
+              />
+              <Input
+                value={editing[t.id] || ""}
+                onChange={(e) => setEditing((prev) => ({ ...prev, [t.id]: e.target.value }))}
+                className="flex-1 bg-ivory-deep/30 font-mono text-sm"
+                placeholder="#000000"
+              />
+              <div className="h-12 w-12 shrink-0 rounded-lg border border-charcoal/15" style={{ backgroundColor: editing[t.id] || "#fff" }} />
+            </div>
+            <div className="mt-2 flex justify-end">
+              <Button
+                onClick={() => save(t.id)}
+                disabled={saving[t.id] || editing[t.id] === t.value}
+                className="rounded-full bg-teal px-4 py-1.5 text-xs text-ivory hover:bg-teal-deep disabled:opacity-40"
+              >
+                {saving[t.id] ? <><Loader2 className="mr-1 h-3 w-3 animate-spin" /> Saving…</> : <><Check className="mr-1 h-3 w-3" /> Save</>}
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-2xl border border-gold/30 bg-gold/5 p-4">
+        <p className="font-display text-xs text-charcoal-soft">
+          <strong>Default colors:</strong> Primary #0E4C4F (Peacock Teal) · Accent #C7A250 (Temple Gold) ·
+          Secondary #6E1E36 (Marsala Maroon) · Background #FBF6EC (Warm Ivory) · Text #231F1C (Charcoal)
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// =================== LEADS & MESSAGES ===================
+
+function LeadsTab() {
+  const [messages, setMessages] = useState<any[]>([]);
+  const [subscribers, setSubscribers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<"messages" | "subscribers">("messages");
+
+  useEffect(() => {
+    let cancelled = false;
+    adminFetch("/api/admin/data").then((data) => {
+      if (cancelled || !data) { setLoading(false); return; }
+      setMessages(data.messages || []);
+      setSubscribers(data.subscribers || []);
+      setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (loading) return <LoadingSpinner />;
+
+  return (
+    <div className="space-y-4">
+      {/* Toggle */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setView("messages")}
+          className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-all ${view === "messages" ? "border-teal bg-teal text-ivory" : "border-charcoal/15 bg-white text-charcoal-soft hover:border-teal/40"}`}
+        >
+          Contact Leads ({messages.length})
+        </button>
+        <button
+          onClick={() => setView("subscribers")}
+          className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-all ${view === "subscribers" ? "border-teal bg-teal text-ivory" : "border-charcoal/15 bg-white text-charcoal-soft hover:border-teal/40"}`}
+        >
+          Newsletter ({subscribers.length})
+        </button>
+        {view === "subscribers" && subscribers.length > 0 && (
+          <button
+            onClick={() => {
+              const csv = "email,name,language,subscribedAt\n" + subscribers.map((s) => `${s.email},${s.name || ""},${s.language},${new Date(s.createdAt).toISOString()}`).join("\n");
+              const blob = new Blob([csv], { type: "text/csv" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a"); a.href = url; a.download = "rk-newsletter.csv"; a.click(); URL.revokeObjectURL(url);
+            }}
+            className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-charcoal/15 px-3 py-1.5 font-display text-xs font-semibold text-charcoal-soft hover:bg-ivory-deep"
+          >
+            <ArrowDownToLine className="h-3.5 w-3.5" /> Export CSV
+          </button>
+        )}
+      </div>
+
+      {view === "messages" ? (
+        <div className="space-y-3">
+          {messages.length === 0 ? (
+            <div className="rounded-2xl border border-charcoal/10 bg-white p-8 text-center">
+              <Mail className="mx-auto mb-2 h-8 w-8 text-charcoal/30" />
+              <p className="font-display text-sm text-charcoal-soft">No contact leads yet.</p>
+            </div>
+          ) : (
+            messages.map((m) => (
+              <div key={m.id} className="rounded-2xl border border-charcoal/10 bg-white p-4">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <div className="font-serif text-sm font-semibold text-charcoal">{m.subject}</div>
+                    <div className="font-display text-[10px] text-charcoal-soft">
+                      {m.name} · {m.email} {m.phone && `· ${m.phone}`} · <span className="rounded-full bg-teal/8 px-1.5 py-0.5 font-semibold text-teal">{m.topic}</span>
+                    </div>
+                  </div>
+                  <div className="font-display text-[10px] text-charcoal-soft">{new Date(m.createdAt).toLocaleString("en-IN")}</div>
+                </div>
+                <p className="mt-2 font-display text-xs leading-relaxed text-charcoal-soft">{m.message}</p>
+                <a href={`mailto:${m.email}?subject=Re: ${encodeURIComponent(m.subject)}`} className="mt-3 inline-block rounded-full bg-teal px-3 py-1 font-display text-[10px] font-semibold text-ivory hover:bg-teal-deep">Reply by email</a>
+              </div>
+            ))
+          )}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-charcoal/10 bg-white p-5">
+          <div className="scrollbar-thin max-h-[60vh] space-y-1 overflow-y-auto">
+            {subscribers.length === 0 ? (
+              <p className="py-8 text-center font-display text-sm text-charcoal-soft">No subscribers yet.</p>
+            ) : subscribers.map((s) => (
+              <div key={s.id} className="flex items-center justify-between border-b border-charcoal/5 py-2 last:border-0">
+                <div>
+                  <div className="font-serif text-sm font-semibold text-charcoal">{s.email}</div>
+                  <div className="font-display text-[10px] text-charcoal-soft">{s.name || "—"} · {s.language}</div>
+                </div>
+                <div className="font-display text-[10px] text-charcoal-soft">{new Date(s.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

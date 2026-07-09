@@ -239,4 +239,13 @@ model SiteSetting {
   updatedAt DateTime @updatedAt
 }
 
+// Theme customization — colors, fonts, etc.
+model ThemeSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique // e.g. "primary_color", "accent_color", "bg_color"
+  value     String   // hex color e.g. "#0E4C4F"
+  label     String?
+  updatedAt DateTime @updatedAt
+}
+
 
