@@ -18,7 +18,7 @@ import {
 import { Logo, Lotus } from "../Motifs";
 import { useRouter } from "@/lib/router";
 import {
-  getAdmin, getAdminToken, setAdminSession, clearAdminSession, adminFetch,
+  getAdmin, getAdminToken, setAdminSession, clearAdminSession, adminFetch, adminApi,
 } from "@/lib/admin-client";
 import { toast } from "sonner";
 
@@ -339,7 +339,7 @@ function DashboardTab() {
 
   const loadStats = useCallback(() => {
     let cancelled = false;
-    adminFetch("/api/admin/stats")
+    adminApi.get("stats")
       .then((data) => {
         if (cancelled) return;
         if (!data) { setError(true); setLoading(false); return; }
@@ -448,7 +448,7 @@ function AnalyticsTab() {
 
   const loadData = useCallback(() => {
     let cancelled = false;
-    adminFetch("/api/admin/analytics")
+    adminApi.get("analytics")
       .then((d) => {
         if (cancelled) return;
         if (!d) { setError(true); setLoading(false); return; }
@@ -670,7 +670,7 @@ function BookingsTab() {
     const params = new URLSearchParams();
     if (statusFilter !== "ALL") params.set("status", statusFilter);
     if (search) params.set("search", search);
-    adminFetch(`/api/admin/bookings?${params}`)
+    adminApi.get("bookings", { status: statusFilter, search })
       .then((data) => {
         if (cancelled || !data) { if (!cancelled) setLoading(false); return; }
         setBookings(data.bookings || []);
@@ -682,10 +682,7 @@ function BookingsTab() {
 
   const reload = useCallback(() => {
     setLoading(true);
-    const params = new URLSearchParams();
-    if (statusFilter !== "ALL") params.set("status", statusFilter);
-    if (search) params.set("search", search);
-    adminFetch(`/api/admin/bookings?${params}`)
+    adminApi.get("bookings", { status: statusFilter, search })
       .then((data) => {
         if (data) setBookings(data.bookings || []);
         setLoading(false);
@@ -693,10 +690,7 @@ function BookingsTab() {
   }, [statusFilter, search]);
 
   const action = async (id: string, a: string) => {
-    const res = await adminFetch("/api/admin/bookings", {
-      method: "PATCH",
-      body: JSON.stringify({ id, action: a }),
-    });
+    const res = await adminApi.patch("booking_status", { id, bookingAction: a });
     if (res) {
       toast.success(`Booking ${a.toLowerCase().replace("_", " ")}`);
       reload();
@@ -795,7 +789,7 @@ function RoomsTab() {
   const [editing, setEditing] = useState<any | null>(null);
 
   const reload = useCallback(() => {
-    adminFetch("/api/admin/rooms").then((data) => {
+    adminApi.get("rooms").then((data) => {
       if (data) setRooms(data.rooms || []);
       setLoading(false);
     });
@@ -803,7 +797,7 @@ function RoomsTab() {
 
   useEffect(() => {
     let cancelled = false;
-    adminFetch("/api/admin/rooms").then((data) => {
+    adminApi.get("rooms").then((data) => {
       if (cancelled) return;
       if (data) setRooms(data.rooms || []);
       setLoading(false);
@@ -917,7 +911,7 @@ function OffersTab() {
   const [editing, setEditing] = useState<any | null>(null);
 
   const reload = useCallback(() => {
-    adminFetch("/api/admin/offers").then((data) => {
+    adminApi.get("offers").then((data) => {
       if (data) setOffers(data.offers || []);
       setLoading(false);
     });
@@ -925,7 +919,7 @@ function OffersTab() {
 
   useEffect(() => {
     let cancelled = false;
-    adminFetch("/api/admin/offers").then((data) => {
+    adminApi.get("offers").then((data) => {
       if (cancelled) return;
       if (data) setOffers(data.offers || []);
       setLoading(false);
@@ -1028,7 +1022,7 @@ function BlogTab() {
   const [editing, setEditing] = useState<any | null>(null);
 
   const reload = useCallback(() => {
-    adminFetch("/api/admin/blog").then((data) => {
+    adminApi.get("blog").then((data) => {
       if (data) setPosts(data.posts || []);
       setLoading(false);
     });
@@ -1036,7 +1030,7 @@ function BlogTab() {
 
   useEffect(() => {
     let cancelled = false;
-    adminFetch("/api/admin/blog").then((data) => {
+    adminApi.get("blog").then((data) => {
       if (cancelled) return;
       if (data) setPosts(data.posts || []);
       setLoading(false);
@@ -1145,7 +1139,7 @@ function ReviewsTab() {
   const [loading, setLoading] = useState(true);
 
   const reload = useCallback(() => {
-    adminFetch("/api/admin/reviews").then((data) => {
+    adminApi.get("reviews").then((data) => {
       if (data) setReviews(data.reviews || []);
       setLoading(false);
     });
@@ -1153,7 +1147,7 @@ function ReviewsTab() {
 
   useEffect(() => {
     let cancelled = false;
-    adminFetch("/api/admin/reviews").then((data) => {
+    adminApi.get("reviews").then((data) => {
       if (cancelled) return;
       if (data) setReviews(data.reviews || []);
       setLoading(false);
@@ -1162,7 +1156,7 @@ function ReviewsTab() {
   }, []);
 
   const toggle = async (id: string, action: "APPROVE" | "HIDE") => {
-    const res = await adminFetch("/api/admin/reviews", { method: "PATCH", body: JSON.stringify({ id, action }) });
+    const res = await adminApi.patch("review", { id, reviewAction: action });
     if (res) { toast.success(action === "APPROVE" ? "Review approved" : "Review hidden"); reload(); }
   };
 
@@ -1201,7 +1195,7 @@ function NewsletterTab() {
 
   useEffect(() => {
     let cancelled = false;
-    adminFetch("/api/admin/data").then((data) => {
+    adminApi.get("data").then((data) => {
       if (cancelled || !data) { if (!cancelled) setLoading(false); return; }
       setSubs(data.subscribers || []);
       setLoading(false);
@@ -1247,7 +1241,7 @@ function MessagesTab() {
 
   useEffect(() => {
     let cancelled = false;
-    adminFetch("/api/admin/data").then((data) => {
+    adminApi.get("data").then((data) => {
       if (cancelled || !data) { if (!cancelled) setLoading(false); return; }
       setMessages(data.messages || []);
       setLoading(false);
@@ -1284,7 +1278,7 @@ function AuditTab() {
 
   useEffect(() => {
     let cancelled = false;
-    adminFetch("/api/admin/data").then((data) => {
+    adminApi.get("data").then((data) => {
       if (cancelled || !data) { if (!cancelled) setLoading(false); return; }
       setLogs(data.auditLogs || []);
       setLoading(false);
@@ -1320,7 +1314,7 @@ function ContentTab() {
   const [saving, setSaving] = useState<Record<string, boolean>>({});
 
   const reload = useCallback(() => {
-    adminFetch("/api/admin/content").then((data) => {
+    adminApi.get("content").then((data) => {
       if (data) {
         setItems(data.items || []);
         const editMap: Record<string, string> = {};
@@ -1333,7 +1327,7 @@ function ContentTab() {
 
   useEffect(() => {
     let cancelled = false;
-    adminFetch("/api/admin/content").then((data) => {
+    adminApi.get("content").then((data) => {
       if (cancelled || !data) { setLoading(false); return; }
       setItems(data.items || []);
       const editMap: Record<string, string> = {};
@@ -1346,7 +1340,7 @@ function ContentTab() {
 
   const save = async (id: string) => {
     setSaving((s) => ({ ...s, [id]: true }));
-    const res = await adminFetch("/api/admin/content", { method: "PATCH", body: JSON.stringify({ id, value: editing[id] }) });
+    const res = await adminApi.patch("content", { id, value: editing[id] });
     if (res) {
       toast.success("Content updated — changes are live on the website");
       setItems((prev) => prev.map((item) => item.id === id ? { ...item, value: editing[id] } : item));
@@ -1437,7 +1431,7 @@ function SettingsTab() {
 
   useEffect(() => {
     let cancelled = false;
-    adminFetch("/api/admin/settings").then((data) => {
+    adminApi.get("settings").then((data) => {
       if (cancelled || !data) { setLoading(false); return; }
       setSettings(data.settings || []);
       const editMap: Record<string, string> = {};
@@ -1450,7 +1444,7 @@ function SettingsTab() {
 
   const save = async (id: string) => {
     setSaving((s) => ({ ...s, [id]: true }));
-    const res = await adminFetch("/api/admin/settings", { method: "PATCH", body: JSON.stringify({ id, value: editing[id] }) });
+    const res = await adminApi.patch("setting", { id, value: editing[id] });
     if (res) {
       toast.success("Setting updated");
       setSettings((prev) => prev.map((s) => s.id === id ? { ...s, value: editing[id] } : s));
@@ -1518,7 +1512,7 @@ function UsersTab() {
   const admin = getAdmin();
 
   const reload = useCallback(() => {
-    adminFetch("/api/admin/users").then((data) => {
+    adminApi.get("users").then((data) => {
       if (data) setUsers(data.users || []);
       setLoading(false);
     });
@@ -1526,7 +1520,7 @@ function UsersTab() {
 
   useEffect(() => {
     let cancelled = false;
-    adminFetch("/api/admin/users").then((data) => {
+    adminApi.get("users").then((data) => {
       if (cancelled) return;
       if (data) setUsers(data.users || []);
       setLoading(false);
@@ -1655,7 +1649,7 @@ function ThemeTab() {
 
   useEffect(() => {
     let cancelled = false;
-    adminFetch("/api/admin/theme").then((data) => {
+    adminApi.get("theme").then((data) => {
       if (cancelled || !data) { setLoading(false); return; }
       setThemes(data.themes || []);
       const editMap: Record<string, string> = {};
@@ -1668,7 +1662,7 @@ function ThemeTab() {
 
   const save = async (id: string) => {
     setSaving((s) => ({ ...s, [id]: true }));
-    const res = await adminFetch("/api/admin/theme", { method: "PATCH", body: JSON.stringify({ id, value: editing[id] }) });
+    const res = await adminApi.patch("theme", { id, value: editing[id] });
     if (res) {
       toast.success("Theme color updated — changes are live!");
       setThemes((prev) => prev.map((t) => t.id === id ? { ...t, value: editing[id] } : t));
@@ -1744,7 +1738,7 @@ function LeadsTab() {
 
   useEffect(() => {
     let cancelled = false;
-    adminFetch("/api/admin/data").then((data) => {
+    adminApi.get("data").then((data) => {
       if (cancelled || !data) { setLoading(false); return; }
       setMessages(data.messages || []);
       setSubscribers(data.subscribers || []);
