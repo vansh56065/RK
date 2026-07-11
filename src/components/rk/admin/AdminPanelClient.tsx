@@ -153,24 +153,64 @@ function AdminLogin({ onLogin, onBack }: { onLogin: (a: AdminUser, token: string
     e.preventDefault();
     setLoading(true);
     setError("");
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 5; attempt++) {
       try {
-        const res = await fetch("/api/admin/auth", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
+        const res = await fetch("/api/admin/auth", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+
+        // Check if response is OK
+        if (!res.ok) {
+          // Try to parse error JSON, but handle non-JSON responses
+          let errMsg = `Server error (${res.status})`;
+          try {
+            const errData = await res.json();
+            errMsg = errData.error || errMsg;
+          } catch {}
+          throw new Error(errMsg);
+        }
+
+        // Parse JSON response
         const d = await res.json();
-        if (!res.ok) throw new Error(d.error || "Login failed");
+        if (!d.ok || !d.admin || !d.token) {
+          throw new Error(d.error || "Invalid response from server");
+        }
+
+        // Success!
         onLogin(d.admin, d.token);
         toast.success(`Welcome, ${d.admin.name}`);
         setLoading(false);
         return;
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : "Login failed";
-        if (msg.includes("fetch") && attempt < 2) { setError(`Server starting up... retrying (${attempt + 2}/3)`); await new Promise((r) => setTimeout(r, 2000)); continue; }
+
+        // Retry on network errors, timeouts, or server errors
+        const shouldRetry = (
+          msg.includes("fetch") ||
+          msg.includes("network") ||
+          msg.includes("timeout") ||
+          msg.includes("500") ||
+          msg.includes("502") ||
+          msg.includes("503") ||
+          msg.includes("Load failed")
+        );
+
+        if (shouldRetry && attempt < 4) {
+          setError(`Connecting to server... retry ${attempt + 2}/5`);
+          await new Promise((r) => setTimeout(r, 1500));
+          continue;
+        }
+
+        // Final failure
         setError(msg);
         toast.error("Login failed", { description: msg });
         setLoading(false);
         return;
       }
     }
+    setError("Unable to connect. Please refresh the page and try again.");
     setLoading(false);
   };
 
