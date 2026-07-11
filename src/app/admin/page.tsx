@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { AdminPanelClient } from "@/components/rk/admin/AdminPanelClient";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export const metadata = {
   title: "Admin Console — RK Residency",
@@ -14,12 +15,19 @@ export const metadata = {
  * client to make 12+ API calls (which was causing OOM crashes).
  */
 export default async function AdminRoute() {
-  // Fetch all data server-side in parallel
-  const [
-    rooms, offers, blogPosts, reviews, contentItems, settings, themes,
-    bookings, subscribers, messages, auditLogs, adminUsers, seoKeywords,
-    pageViews,
-  ] = await Promise.all([
+  // Fetch all data server-side in parallel — with error handling
+  let rooms: any[] = [], offers: any[] = [], blogPosts: any[] = [], reviews: any[] = [];
+  let contentItems: any[] = [], settings: any[] = [], themes: any[] = [];
+  let bookings: any[] = [], subscribers: any[] = [], messages: any[] = [];
+  let auditLogs: any[] = [], adminUsers: any[] = [], seoKeywords: any[] = [];
+  let pageViews: any[] = [];
+
+  try {
+    [
+      rooms, offers, blogPosts, reviews, contentItems, settings, themes,
+      bookings, subscribers, messages, auditLogs, adminUsers, seoKeywords,
+      pageViews,
+    ] = await Promise.all([
     db.room.findMany({ orderBy: [{ sortOrder: "asc" }] }),
     db.offer.findMany({ orderBy: [{ featured: "desc" }, { validFrom: "asc" }] }),
     db.blogPost.findMany({ orderBy: [{ publishedAt: "desc" }] }),
@@ -51,6 +59,9 @@ export default async function AdminRoute() {
       select: { path: true, referrer: true, sessionId: true, createdAt: true },
     }),
   ]);
+  } catch (e) {
+    console.error("[/admin] DB fetch error:", e);
+  }
 
   // Compute stats server-side
   const activeBookings = bookings.filter((b) => b.status !== "CANCELLED");

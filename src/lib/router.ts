@@ -1,7 +1,6 @@
 "use client";
 
 import { create } from "zustand";
-import { useRouter as useNextRouter } from "next/navigation";
 
 /**
  * Client-side router for the RK Residency site.
