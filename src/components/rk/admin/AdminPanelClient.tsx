@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, CalendarDays, BedDouble, Star, Mail,
@@ -18,7 +18,7 @@ import {
 import { Logo } from "../Motifs";
 import { useRouter } from "@/lib/router";
 import {
-  getAdmin, setAdminSession, clearAdminSession, adminFetch,
+  getAdmin, getAdminToken, setAdminSession, clearAdminSession, adminFetch,
 } from "@/lib/admin-client";
 import { toast } from "sonner";
 
@@ -58,13 +58,59 @@ export interface AdminData {
   adminUsers: any[];
 }
 
-export function AdminPanelClient({ initialData }: { initialData: AdminData }) {
+export function AdminPanelClient({ initialData }: { initialData?: AdminData }) {
   const navigate = useRouter((s) => s.navigate);
   const [stored, setStored] = useState<AdminUser | null>(() => getAdmin());
   const authed = stored !== null;
+  const [data, setData] = useState<AdminData>(initialData || {
+    stats: null, analytics: null, bookings: [], rooms: [], offers: [], blogPosts: [],
+    reviews: [], contentItems: [], settings: [], themes: [], subscribers: [], messages: [],
+    auditLogs: [], adminUsers: [],
+  });
+  const [dataLoaded, setDataLoaded] = useState(!!initialData);
+
+  // Fetch all data from consolidated API after login
+  useEffect(() => {
+    if (!authed || dataLoaded) return;
+    const token = getAdminToken();
+    if (!token) return;
+
+    const headers = { Authorization: `Bearer ${token}` };
+    Promise.all([
+      fetch("/api/admin/all?action=stats", { headers }).then(r => r.json()).catch(() => null),
+      fetch("/api/admin/all?action=bookings", { headers }).then(r => r.json()).catch(() => null),
+      fetch("/api/admin/all?action=rooms", { headers }).then(r => r.json()).catch(() => null),
+      fetch("/api/admin/all?action=offers", { headers }).then(r => r.json()).catch(() => null),
+      fetch("/api/admin/all?action=blog", { headers }).then(r => r.json()).catch(() => null),
+      fetch("/api/admin/all?action=reviews", { headers }).then(r => r.json()).catch(() => null),
+      fetch("/api/admin/all?action=content", { headers }).then(r => r.json()).catch(() => null),
+      fetch("/api/admin/all?action=settings", { headers }).then(r => r.json()).catch(() => null),
+      fetch("/api/admin/all?action=theme", { headers }).then(r => r.json()).catch(() => null),
+      fetch("/api/admin/all?action=data", { headers }).then(r => r.json()).catch(() => null),
+      fetch("/api/admin/all?action=users", { headers }).then(r => r.json()).catch(() => null),
+      fetch("/api/admin/all?action=analytics", { headers }).then(r => r.json()).catch(() => null),
+    ]).then(([stats, bookings, rooms, offers, blog, reviews, content, settings, theme, data, users, analytics]) => {
+      setData({
+        stats: stats || null,
+        analytics: analytics || null,
+        bookings: bookings?.bookings || [],
+        rooms: rooms?.rooms || [],
+        offers: offers?.offers || [],
+        blogPosts: blog?.posts || [],
+        reviews: reviews?.reviews || [],
+        contentItems: content?.items || [],
+        settings: settings?.settings || [],
+        themes: theme?.themes || [],
+        subscribers: data?.subscribers || [],
+        messages: data?.messages || [],
+        auditLogs: data?.auditLogs || [],
+        adminUsers: users?.users || [],
+      });
+      setDataLoaded(true);
+    });
+  }, [authed, dataLoaded]);
   const [tab, setTab] = useState<Tab>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [data, setData] = useState<AdminData>(initialData);
 
   const handleLogin = useCallback((admin: AdminUser, token: string) => {
     setAdminSession(admin, token);
