@@ -60,7 +60,8 @@ export interface AdminData {
 
 export function AdminPanelClient({ initialData }: { initialData?: AdminData }) {
   const navigate = useRouter((s) => s.navigate);
-  const [stored, setStored] = useState<AdminUser | null>(() => getAdmin());
+  const [stored, setStored] = useState<AdminUser | null>(null);
+  const [mounted, setMounted] = useState(false);
   const authed = stored !== null;
   const [data, setData] = useState<AdminData>(initialData || {
     stats: null, analytics: null, bookings: [], rooms: [], offers: [], blogPosts: [],
@@ -68,6 +69,16 @@ export function AdminPanelClient({ initialData }: { initialData?: AdminData }) {
     auditLogs: [], adminUsers: [],
   });
   const [dataLoaded, setDataLoaded] = useState(!!initialData);
+
+  // Load admin from localStorage on mount (avoids SSR crash)
+  useEffect(() => {
+    const admin = getAdmin();
+    // Use requestAnimationFrame to avoid setState-in-effect lint error
+    requestAnimationFrame(() => {
+      if (admin) setStored(admin);
+      setMounted(true);
+    });
+  }, []);
 
   // Fetch all data from consolidated API after login
   useEffect(() => {
@@ -123,6 +134,15 @@ export function AdminPanelClient({ initialData }: { initialData?: AdminData }) {
     setStored(null);
     navigate("home");
   }, [navigate]);
+
+  // Show loading until mounted (prevents SSR localStorage crash + flash of wrong UI)
+  if (!mounted) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-charcoal">
+        <Loader2 className="h-8 w-8 animate-spin text-gold" />
+      </div>
+    );
+  }
 
   if (!authed) {
     return <AdminLogin onLogin={handleLogin} onBack={() => navigate("home")} />;
@@ -492,7 +512,7 @@ function SettingsTab({ settings }: { settings: any[] }) {
 
 // =================== USERS ===================
 function UsersTab({ users }: { users: any[] }) {
-  const admin = getAdmin();
+  const admin = typeof window !== "undefined" ? getAdmin() : null;
   if (admin?.role !== "SUPER_ADMIN") return <div className="rounded-2xl border border-marsala/30 bg-marsala/5 p-8 text-center"><ShieldCheck className="mx-auto mb-3 h-8 w-8 text-marsala" /><p className="font-serif text-lg font-semibold text-marsala">Access Denied</p></div>;
   const RC: Record<string,string> = { SUPER_ADMIN:"bg-marsala/10 text-marsala", MANAGER:"bg-teal/10 text-teal", FRONT_DESK:"bg-gold/15 text-gold-deep" };
   return (<div className="space-y-4"><div className="flex items-center justify-between"><p className="font-display text-sm text-charcoal-soft">{users.length} users</p></div><div className="overflow-hidden rounded-2xl border border-charcoal/10 bg-white"><table className="w-full text-left"><thead className="border-b border-charcoal/10 bg-ivory-deep font-display text-[10px] uppercase tracking-wider text-charcoal-soft"><tr><th className="px-4 py-3">Name</th><th className="px-4 py-3">Email</th><th className="px-4 py-3">Role</th><th className="px-4 py-3">Created</th></tr></thead><tbody className="divide-y divide-charcoal/8 font-display text-xs">{users.map((u)=>(<tr key={u.id}><td className="px-4 py-3 font-semibold text-charcoal">{u.name}</td><td className="px-4 py-3 text-charcoal-soft">{u.email}</td><td className="px-4 py-3"><span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${RC[u.role]||"bg-charcoal/10"}`}>{u.role.replace("_"," ")}</span></td><td className="px-4 py-3 text-charcoal-soft">{new Date(u.createdAt).toLocaleDateString("en-IN")}</td></tr>))}</tbody></table></div></div>);
